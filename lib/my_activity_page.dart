@@ -62,7 +62,7 @@ class _MyActivityPageState extends State<MyActivityPage> {
                         onPressed: () {
                           // 현금으로 출금 로직
                         },
-                        child: const Text('현금으로 출금'),
+                        child: const Text('출금'),
                       ),
                     ],
                   ),
@@ -73,7 +73,7 @@ class _MyActivityPageState extends State<MyActivityPage> {
             const TabBar(
               tabs: [
                 Tab(text: '제출 내역'),
-                Tab(text: '쿠폰 교환 내역'),
+                Tab(text: '출금 내역'),
               ],
               labelColor: kPrimaryColor,
               unselectedLabelColor: kSubTextColor,
@@ -98,10 +98,10 @@ class _MyActivityPageState extends State<MyActivityPage> {
   Widget _buildSubmissionHistory() {
     // 더미 데이터
     final List<Map<String, String>> history = [
-      {'title': '우리 동네 킥보드 챌린지', 'point': '+100P', 'status': '검수 완료'},
-      {'title': '우리 동네 킥보드 챌린지', 'point': '+100P', 'status': '검수 대기중'},
-      {'title': '가을 하늘 사진 챌린지', 'point': '+50P', 'status': '검수 실패'},
-      {'title': '우리 동네 맛집 찍기', 'point': '+150P', 'status': '검수 완료'},
+      {'title': '마우스 사진', 'point': '+100P', 'status': '검수 완료'},
+      {'title': '음료수 사진', 'point': '+100P', 'status': '검수 대기중'},
+      {'title': '맨홀 뚜껑 사진', 'point': '+50P', 'status': '검수 실패'},
+      {'title': '손 사진', 'point': '+150P', 'status': '검수 완료'},
     ];
 
     return ListView.separated(
