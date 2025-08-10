@@ -1,189 +1,220 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'app_constants.dart';
+import 'package:flutter_svg/flutter_svg.dart'; // SVG 패키지 import
 
-class ShopTab extends StatefulWidget {
-  @override
-  _ShopTabState createState() => _ShopTabState();
+// 쿠폰 데이터를 담을 간단한 모델 클래스
+class Coupon {
+  final String imageUrl;
+  final String title;
+  final String price;
+
+  Coupon({required this.imageUrl, required this.title, required this.price});
 }
 
-class _ShopTabState extends State<ShopTab> {
-  late SharedPreferences _prefs;
-  String? _user_name;
-  List<String>? _user_interests;
-  int? _user_point;
+class ShopTabPage extends StatelessWidget {
+  ShopTabPage({super.key});
 
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
+  // 쿠폰 데이터 (로컬 asset 이미지 경로 사용)
+  final List<Coupon> allCoupons = [
+    Coupon(imageUrl: 'assets/images/coupons/mega_coffee.png', title: '메가 커피 1만원 쿠폰', price: '12,000원'),
+    Coupon(imageUrl: 'assets/images/coupons/baemin_coupon.png', title: '배달의 민족 5천원 쿠폰', price: '6,000원'),
+    Coupon(imageUrl: 'assets/images/coupons/chicken.png', title: '우리집 닭강정 2만원 쿠폰', price: '21,000원'),
+    Coupon(imageUrl: 'assets/images/coupons/myjju.png', title: '마이쮸 쿠폰', price: '1,000원'),
+  ];
 
-  Future<void> _loadData() async {
-    _prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _user_name = _prefs.getString('user_name');
-      _user_interests = _prefs.getStringList('user_interests');
-      _user_point = _prefs.getInt("user_point");
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2, // 카테고리 개수
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Snapi 쇼핑'),
-          // 포인트 현황을 AppBar 아래에 배치
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(100.0),
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    const primaryColor = Color(0xFF6A00C9);
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text(
+          'Snapi 쇼핑',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 광고 영역
+            Container(
+              height: 120,
+              margin: const EdgeInsets.symmetric(vertical: 16.0),
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: Text('광고', style: TextStyle(color: Colors.grey[600])),
+              ),
+            ),
+            // 인기 있는 쿠폰 섹션 (SVG 아이콘 적용)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Row(
+                children: [
+                  SvgPicture.asset(
+                    'assets/images/cookie.svg',
+                    width: 24, // SVG 아이콘 크기 조절
+                    height: 24,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    '인기 있는 쿠폰',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+            // 쿠폰 그리드
+            GridView.builder(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 0.7,
+              ),
+              itemCount: allCoupons.length,
+              itemBuilder: (context, index) {
+                final coupon = allCoupons[index];
+                return GestureDetector(
+                  onTap: () {
+                    _showPurchaseBottomSheet(context, coupon, primaryColor);
+                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('보유 포인트'),
-                          _user_point == null ?
-                          const CircularProgressIndicator() :
-                          Text(
-                              "${_user_point} P",
-                              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)
+                      AspectRatio(
+                        aspectRatio: 1.5,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey[300]!),
                           ),
-                        ],
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(11), // 테두리 안쪽으로 부드럽게 잘리도록
+                            child: Image.asset(
+                              coupon.imageUrl,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
                       ),
-                      ElevatedButton(
-                        onPressed: () {
-                          // 포인트 충전(챌린지 참여) 페이지로 이동
-                        },
-                        child: const Text('포인트 충전'),
-                      )
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0, left: 4.0),
+                        child: Text(coupon.title, style: TextStyle(fontSize: 16)),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0, left: 4.0),
+                        child: Text(
+                          coupon.price,
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                      ),
                     ],
                   ),
-                ),
-                const TabBar(
-                  tabs: [
-                    Tab(text: '카페/음료'),
-                    Tab(text: '편의점'),
-                  ],
-                  labelColor: kPrimaryColor,
-                  unselectedLabelColor: kSubTextColor,
-                  indicatorColor: kPrimaryColor,
-                ),
-              ],
+                );
+              },
             ),
-          ),
-        ),
-        body: const TabBarView(
-          children: [
-            // 각 카테고리별 쿠폰 목록
-            CouponGrid(category: 'cafe'),
-            CouponGrid(category: 'convenience'),
+            SizedBox(height: 30),
           ],
         ),
       ),
     );
   }
-}
 
-// 쿠폰 목록을 보여주는 그리드 위젯
-class CouponGrid extends StatelessWidget {
-  final String category;
-  const CouponGrid({super.key, required this.category});
-
-  @override
-  Widget build(BuildContext context) {
-    // 더미 데이터
-    final List<Map<String, dynamic>> coupons = [
-      {'name': '스타벅스 아메리카노 T', 'point': 4500, 'image': 'assets/images/starbucks.png'},
-      {'name': '이디야커피 아이스티', 'point': 2500, 'image': 'assets/images/ediya.png'},
-      {'name': 'CU 1,000원권', 'point': 1000, 'image': 'assets/images/cu.png'},
-      {'name': 'GS25 2,000원권', 'point': 2000, 'image': 'assets/images/gs25.png'},
-    ];
-
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 0.7,
+  // 구매하기 Bottom Sheet
+  void _showPurchaseBottomSheet(BuildContext context, Coupon coupon, Color primaryColor) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      itemCount: coupons.length,
-      itemBuilder: (context, index) {
-        final coupon = coupons[index];
-        return CouponCard(
-          name: coupon['name'],
-          point: coupon['point'],
-          image: coupon['image'],
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: primaryColor.withOpacity(0.1),
+                    child: Text(
+                      'P',
+                      style: TextStyle(
+                        color: primaryColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 24,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('내 포인트', style: TextStyle(color: Colors.grey[600])),
+                      Text(
+                        '120원',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  )
+                ],
+              ),
+              SizedBox(height: 24),
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(coupon.title, style: TextStyle(fontSize: 16)),
+                    Text(
+                      coupon.price,
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    '구입하기',
+                    style: TextStyle(fontSize: 18, color: Colors.white),
+                  ),
+                ),
+              )
+            ],
+          ),
         );
       },
-    );
-  }
-}
-
-// 개별 쿠폰 카드 위젯
-class CouponCard extends StatelessWidget {
-  final String name;
-  final int point;
-  final String image;
-
-  const CouponCard({
-    super.key,
-    required this.name,
-    required this.point,
-    required this.image,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Image.asset(
-              image,
-              fit: BoxFit.cover,
-              width: double.infinity,
-              errorBuilder: (context, error, stackTrace) =>
-              const Center(child: Icon(Icons.image_not_supported)),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name, maxLines: 2, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 4),
-                Text('${point}P', style: const TextStyle(fontWeight: FontWeight.bold, color: kPrimaryColor)),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // 교환하기 로직
-                    },
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      textStyle: const TextStyle(fontSize: 14),
-                    ),
-                    child: const Text('교환하기'),
-                  ),
-                )
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

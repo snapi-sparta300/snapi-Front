@@ -1,10 +1,17 @@
 import 'dart:io';
-
+import 'dart:math'; // 랜덤 결과를 위해 추가
 import 'package:flutter/material.dart';
 import 'app_constants.dart';
 
+// 1. 검증 상태를 명확하게 정의하기 위한 enum
+enum VerificationStatus {
+  verifying,
+  success,
+  failureDuplicate,
+  failureInvalid,
+}
+
 class VerificationPage extends StatefulWidget {
-  // 테스트를 위해 성공/실패 여부를 외부에서 전달받도록 설정
   final File file;
 
   const VerificationPage({
@@ -17,138 +24,110 @@ class VerificationPage extends StatefulWidget {
 }
 
 class _VerificationPageState extends State<VerificationPage> {
-  bool _isVerifying = true;
-  bool success = false;
+  // 2. 상태 변수를 enum으로 변경
+  VerificationStatus _status = VerificationStatus.verifying;
 
   @override
   void initState() {
     super.initState();
-    // AI 검증 과정을 시뮬레이션하기 위한 딜레이
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() {
-          _isVerifying = false;
-        });
-      }
-    });
+    _startVerification();
+  }
 
-    success = true;
+  // AI 검증 시뮬레이션 로직
+  Future<void> _startVerification() async {
+    // 2초간 "검토 중" 상태를 표시
+    await Future.delayed(const Duration(seconds: 2));
+
+    // 실제 앱에서는 이 부분에 서버와 통신하는 API 호출 코드가 들어갑니다.
+    // 지금은 결과를 랜덤으로 시뮬레이션합니다.
+    final results = [
+      VerificationStatus.success,
+      VerificationStatus.failureDuplicate,
+      VerificationStatus.failureInvalid,
+    ];
+    final randomResult = results[Random().nextInt(results.length)];
+
+    if (mounted) {
+      setState(() {
+        _status = randomResult;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AI 검증'),
-        automaticallyImplyLeading: false, // 뒤로가기 버튼 숨김
+        automaticallyImplyLeading: _status != VerificationStatus.verifying,
+        backgroundColor: Colors.white,
+        elevation: 0,
       ),
-      body: SafeArea(
-        child: Center(
-          child: _isVerifying
-              ? const Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 20),
-              Text('AI가 사진을 검증하고 있어요...', style: kBodyTextStyle),
-            ],
-          )
-              : success
-              ? _buildSuccessView(context)
-              : _buildFailureView(context),
+      body: Center(
+        child: switch (_status) {
+          VerificationStatus.verifying => _buildVerifyingView(),
+          VerificationStatus.success => _buildSuccessView(),
+          VerificationStatus.failureDuplicate => _buildFailureDuplicateView(),
+          VerificationStatus.failureInvalid => _buildFailureInvalidView(),
+        },
+      ),
+    );
+  }
+
+  // "검토 중" 화면
+  Widget _buildVerifyingView() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.receipt_long, size: 80, color: Colors.grey[400]),
+        const SizedBox(height: 24),
+        Text(
+          '검증 AI가 사진을\n검토하고 있어요...',
+          style: kHeadline2Style.copyWith(height: 1.5),
+          textAlign: TextAlign.center,
         ),
-      ),
+      ],
     );
   }
 
-  // 검증 성공 화면
-  Widget _buildSuccessView(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.check_circle, color: kSecondaryColor, size: 80),
-          const SizedBox(height: 20),
-          const Text('+100P 적립!', style: kHeadline1Style),
-          const SizedBox(height: 12),
-          const Text(
-            'AI 검증이 통과되었습니다.\n감사합니다.',
-            style: kSubBodyTextStyle,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 30),
-          // 제출된 사진 미리보기 (Placeholder)
-          Container(
-            height: 300,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Image.file(
-              widget.file, //조심
-              width: double.infinity,
-              height: 300,
-              fit: BoxFit.cover, // 이미지 크기에 맞춰 자르거나 늘립니다.
-            ),
-          ),
-          const Spacer(),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {
-                    Navigator.pop(context); // 챌린지 상세 페이지로 돌아가기
-                  },
-                  child: const Text('더 찍으러 가기'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
-                  },
-                  child: const Text('메인으로'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+  // "성공" 화면
+  Widget _buildSuccessView() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text('🔥', style: TextStyle(fontSize: 80)),
+        const SizedBox(height: 24),
+        const Text('+500P 수집!', style: kHeadline1Style),
+        const SizedBox(height: 12),
+        const Text('정확한 데이터 입니다!', style: kSubBodyTextStyle), // 스타일 수정
+      ],
     );
   }
 
-  // 검증 실패 화면
-  Widget _buildFailureView(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.cancel, color: Colors.red, size: 80),
-          const SizedBox(height: 20),
-          const Text('AI 검증 실패...', style: kHeadline1Style),
-          const SizedBox(height: 12),
-          const Text(
-            '사진이 너무 흐릿해요.\n다시 찍어주세요.',
-            style: kSubBodyTextStyle,
-            textAlign: TextAlign.center,
-          ),
-          const Spacer(),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context); // 카메라(챌린지 상세)로 돌아가기
-            },
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size(double.infinity, 50),
-              backgroundColor: Colors.red,
-            ),
-            child: const Text('다시 찍기'),
-          ),
-        ],
-      ),
+  // "실패 - 중복" 화면
+  Widget _buildFailureDuplicateView() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text('🤔', style: TextStyle(fontSize: 80)),
+        const SizedBox(height: 24),
+        const Text('중복되는 사진 입니다', style: kHeadline2Style),
+        const SizedBox(height: 12),
+        const Text('다시 촬영 해주세요!', style: kSubBodyTextStyle), // 스타일 수정
+      ],
+    );
+  }
+
+  // "실패 - 부적절" 화면
+  Widget _buildFailureInvalidView() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text('❌', style: TextStyle(fontSize: 80)),
+        const SizedBox(height: 24),
+        const Text('올바른 사진이 아닙니다', style: kHeadline2Style),
+        const SizedBox(height: 12),
+        const Text('다시 촬영 해주세요!', style: kSubBodyTextStyle), // 스타일 수정
+      ],
     );
   }
 }
