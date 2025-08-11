@@ -1,0 +1,54 @@
+name: three_thousand
+description: "three thousand."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # 패키지들
+  http: ^1.1.0
+  shared_preferences: ^2.2.2
+  flutter_riverpod: ^2.4.9
+  url_launcher: ^6.2.1
+  cupertino_icons: ^1.0.8
+  flutter_svg: ^2.0.7
+  
+  # 카메라 관련 패키지
+  # 카메라 기능을 사용하려면 아래 패키지 추가
+  camera: 0.10.5+2
+  image: ^4.1.3
+  path_provider: ^2.0.12
+  permission_handler: ^11.0.1
+  path: ^1.8.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  # 이미지/아이콘 자산 경로 (실제 폴더명과 일치해야 함)
+  assets:
+    - assets/images/illustrations/ # 일러스트 폴더(온보딩 페이지)
+    - assets/images/home/          # ← main1~4.svg 넣어둘 폴더
+    - assets/images/
+    - assets/images/coupons/      # 쿠폰 관련 이미지 폴더
+    - assets/images/guidelines/
+   
+    # - assets/images/illustrations/img_wallet.svg
+    # - assets/images/illustrations/img_phone.svg
+    # - assets/images/illustrations/img_social.svg
+
+  # 폰트 쓰면 주석 해제해서 등록
+  # fonts:
+  #   - family: Inter
+  #     fonts:
+  #       - asset: assets/fonts/Inter-Regular.ttf
+  #       - asset: assets/fonts/Inter-Bold.ttf
+  #         weight: 700
