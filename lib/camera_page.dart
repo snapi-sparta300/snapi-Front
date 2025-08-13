@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:three_thousand/show_img.dart';
 import 'package:three_thousand/verification_page.dart';
 // 이미지 처리 및 파일 경로를 위해 추가된 패키지
 import 'package:image/image.dart' as img;
@@ -19,13 +20,15 @@ Future<void> is_available_camera() async {
 }
 
 class CameraPage extends StatefulWidget {
-  final String objectName;
   final int challengeId;
+  final int missionId;
+  final int missionPoint;
 
   const CameraPage({
     super.key,
-    required this.objectName,
-    required this.challengeId
+    required this.challengeId,
+    required this.missionId,
+    required this.missionPoint,
   });
 
 
@@ -88,6 +91,13 @@ class _CameraPageState extends State<CameraPage> {
 
   // 사진 찍고 3:4 비율로 자르는 함수
   Future<void> _takePicture() async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('전처리 중... 잠시만 기다려 주세요.'),
+        duration: Duration(seconds: 2), // 3초 후에 자동으로 사라집니다.
+      ),
+    );
+
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
       return;
     }
@@ -151,7 +161,7 @@ class _CameraPageState extends State<CameraPage> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => VerificationPage(objectName: widget.objectName, file: croppedFile),
+            builder: (context) => ShowImgPage(challengeId: widget.challengeId, missionId: widget.missionId, missionPoint: widget.missionPoint, file: croppedFile),
           ),
         );
       }
@@ -206,7 +216,7 @@ class _CameraPageState extends State<CameraPage> {
                     ),
                   ),
                   Image.asset(
-                    'assets/images/guidelines/icon_${widget.objectName}_guideline.png',
+                    'assets/images/objects/${widget.challengeId}/${widget.challengeId}_${widget.missionId}/guideline.png',
                     fit: BoxFit.cover, // 이미지가 비율을 유지하며 가능한 크게 채우도록 설정합니다. 필요에 따라 다른 BoxFit 속성을 사용할 수 있습니다.
                   ),
                 ],

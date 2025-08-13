@@ -1,12 +1,9 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:three_thousand/challenge_detail_page.dart';
 import 'app_constants.dart';
-
-//const String kApiBaseUrl = 'https://your.api.server.com';
 
 class HomeTab extends StatefulWidget {
   @override
@@ -27,6 +24,8 @@ class _HomeTabState extends State<HomeTab> {
 
   List<Map<dynamic, dynamic>> _challenges = [];
   List<Map<dynamic, dynamic>> _me_challenges = [];
+
+  bool _is_loading = false;
 
   @override
   void initState() {
@@ -49,18 +48,22 @@ class _HomeTabState extends State<HomeTab> {
 
     // API 요청 2: 추가 정보 전송
     final step2Response = await http.get(
-      Uri.parse('$kApiBaseUrl/challenges'),
+      Uri.parse('$kApiBaseUrl/challenges/all'),
       headers: {'Content-Type': 'application/json'},
     );
 
     if (step2Response.statusCode == 200 || step2Response.statusCode == 201) {
       final Map<String, dynamic> data = jsonDecode(step2Response.body);
+
+      if(data['isSuccess'] == false) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
+        return;
+      }
+
       final List<dynamic> challengesFromApi = data['result']['challenges'];
       setState(() {
         _challenges = challengesFromApi.map((item) => item as Map<dynamic, dynamic>).toList();
       });
-
-      print(_challenges);
 
     } else {
       // 2단계 실패
@@ -77,6 +80,12 @@ class _HomeTabState extends State<HomeTab> {
 
     if (step3Response.statusCode == 200 || step3Response.statusCode == 201) {
       final Map<String, dynamic> data = jsonDecode(step3Response.body);
+
+      if(data['isSuccess'] == false) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
+        return;
+      }
+
       final List<dynamic> meChallengesFromApi = data['result']['challenges'];
       setState(() {
         _me_challenges = meChallengesFromApi.map((item) => item as Map<dynamic, dynamic>).toList();
@@ -88,94 +97,137 @@ class _HomeTabState extends State<HomeTab> {
       final errorMessage = errorData['message'] ?? '추가 정보 등록에 실패했습니다.';
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
     }
+
+    setState(() {
+      _is_loading = true;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            // 인사말
-            Text(
-              '안녕하세요, ${_user_name == null ? '' : _user_name}님!',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
+        child: Builder(
+          builder: (context) {
+            if(!_is_loading) {
+              return SizedBox();
+            }
 
-            // 포인트 카드
-            _PointCard(point: _user_point ?? 0),
-
-            const SizedBox(height: 16),
-            const Divider(height: 32),
-
-            // 참여 중인 챌린지
-            const _SectionTitle('참여 중인 챌린지'),
-            const SizedBox(height: 8),
-            if (_me_challenges.isNotEmpty) ListView.builder(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              itemCount: _me_challenges.length,
-              itemBuilder: (BuildContext context, int index) {
-                final item = _me_challenges[index];
-                return _ChallengeTile(
-                  assetPng: 'assets/images/home/main2.png',
-                  title: item['name'],
-                  rewardText: item['totalPoint'].toString(),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ChallengeDetailPage(challengeId: item['challengeId']),
+            return ListView(
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 10.0,),
+                      // 인사말
+                      Text(
+                        'Snapi',
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                       ),
-                    );
-                  },
-                );
-              },
-            ) else Padding(
-              padding: EdgeInsets.all(24.0),
-              child: const Center(
-                child: Text('참여 중인 챌린지가 없습니다.', style: TextStyle(color: Colors.grey)),
-              ),
-            ),
-            const Divider(
-                height: 32,
-              thickness: 2.0,
-              color: Color(0xF0F0F0),
-            ),
+                      const SizedBox(height: 25),
 
-            // 챌린지
-            const _SectionTitle('챌린지'),
-            const SizedBox(height: 8),
-            _challenges.isNotEmpty
-                ? ListView.builder(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              itemCount: _challenges.length,
-              itemBuilder: (BuildContext context, int index) {
-                final item = _challenges[index];
-                return _ChallengeTile(
-                  assetPng: 'assets/images/home/main2.png',
-                  title: item['name'],
-                  rewardText: item['totalPoint'].toString(),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ChallengeDetailPage(challengeId: item['challengeId']),
-                      ),
-                    );
-                  },
-                );
-              },
-            )
-                : Padding(
-                padding: EdgeInsets.all(24.0),
-                child: const Center(
-                  child: Text('참여 중인 챌린지가 없습니다.', style: TextStyle(color: Colors.grey)),
-          )),
-          ],
+                      // 포인트 카드
+                      _PointCard(point: _user_point ?? 0, un: _user_name!,),
+                    ],
+                  ),
+                ),
+
+                Divider(
+                  thickness: 15.0, // 선의 실제 두께
+                  color: Color(0xFFF3F3F3), // 선의 색상
+                  height: 50.0, // 위아래 여백을 포함한 전체 높이
+                ),
+
+                Padding(
+                  padding: EdgeInsets.only(left: 20.0, top: 5.0, right: 20.0, bottom: 20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      const _SectionTitle('참여 중인 챌린지'),
+                      const SizedBox(height: 8),
+                      _me_challenges.isNotEmpty
+                          ? ListView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: _me_challenges.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          final item = _me_challenges[index];
+                          return _ChallengeTile(
+                            assetPng: 'assets/images/objects/${item['challengeId']}/title.png',
+                            title: item['name'],
+                            rewardText: item['totalPoint'].toString(),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ChallengeDetailPage(challengeId: item['challengeId']),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      )
+                          : Padding(
+                          padding: EdgeInsets.all(50.0),
+                          child: const Center(
+                            child: Text('참여 중인 챌린지가 없습니다.', style: TextStyle(fontSize: 16.0, color: Colors.grey)),
+                          )),
+                    ],
+                  )
+                ),
+
+                Divider(
+                  thickness: 15.0, // 선의 실제 두께
+                  color: Color(0xFFF3F3F3), // 선의 색상
+                  height: 50.0, // 위아래 여백을 포함한 전체 높이
+                ),
+
+                Padding(
+                    padding: EdgeInsets.only(left: 20.0, top: 5.0, right: 20.0, bottom: 20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      const _SectionTitle('챌린지'),
+                      const SizedBox(height: 8),
+                      _challenges.isNotEmpty
+                          ? ListView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: _challenges.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          final item = _challenges[index];
+                          return _ChallengeTile(
+                            assetPng: 'assets/images/objects/${item['challengeId']}/title.png',
+                            title: item['name'],
+                            rewardText: item['totalPoint'].toString(),
+                            onTap: () async{
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ChallengeDetailPage(challengeId: item['challengeId']),
+                                ),
+                              );
+
+                              setState(() {});
+                            },
+                          );
+                        },
+                      )
+                          : Padding(
+                          padding: EdgeInsets.all(50.0),
+                          child: const Center(
+                            child: Text('챌린지가 없습니다.', style: TextStyle(fontSize: 16.0, color: Colors.grey)),
+                          )),
+                    ],
+                  )
+                ),
+                // 챌린지
+
+              ],
+            );
+          }
         ),
       ),
     );
@@ -186,35 +238,52 @@ class _HomeTabState extends State<HomeTab> {
 
 class _PointCard extends StatelessWidget {
   final int point;
-  const _PointCard({required this.point});
+  final String un;
+  const _PointCard({required this.point, required this.un});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(0),
       decoration: BoxDecoration(
-        color: kPrimaryColor.withOpacity(0.08),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
-            decoration: const BoxDecoration(color: kPrimaryColor, shape: BoxShape.circle),
+            width: 55,
+            height: 55,
+            decoration: BoxDecoration(color: const Color(0x4D6A0DAD), borderRadius: BorderRadius.circular(20)),
             alignment: Alignment.center,
-            child: const Text('P', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            child: const Text(
+                'P',
+                style: TextStyle(fontSize: 28.0, color: kPrimaryColor, fontWeight: FontWeight.w700),
+            ),
           ),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('내 포인트', style: TextStyle(color: kSubTextColor)),
+              const Text('내 포인트', style: TextStyle(color: kSubTextColor, fontSize: 16.0)),
               Text('${point}원', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             ],
           ),
           const Spacer(),
           // 피그마의 회색 '내역' 느낌
+          IgnorePointer(
+            ignoring: true,
+            child: ElevatedButton(
+              onPressed: () => null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey.shade200,
+                foregroundColor: Colors.black54,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              ),
+              child: Text(un + "님"),
+            ),
+          ),
         ],
       ),
     );
@@ -227,7 +296,7 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(text, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600));
+    return Text(text, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600));
   }
 }
 
@@ -276,7 +345,7 @@ class _ChallengeTile extends StatelessWidget {
                 children: [
                   Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 4),
-                  Text(rewardText, style: const TextStyle(fontSize: 14, color: kPrimaryColor)),
+                  Text("총 ${rewardText} P", style: const TextStyle(fontSize: 14, color: kPrimaryColor)),
                 ],
               ),
             ),

@@ -25,15 +25,14 @@ class _UserInfoPageState extends State<UserInfoPage> {
 
   Future<void> requestCameraPermission() async {
     final cameraStatus = await Permission.camera.request();
-    final microphoneStatus = await Permission.microphone.request();
 
-    if (cameraStatus.isGranted && microphoneStatus.isGranted) {
-      print("카메라 및 마이크 권한이 허용되었습니다.");
+    if (cameraStatus.isGranted) {
+      print("카메라 권한이 허용되었습니다.");
     } else {
-      print("카메라 및 마이크 권한이 거부되었습니다.");
+      print("카메라 권한이 거부되었습니다.");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('카메라와 마이크 권한이 필요합니다. 설정에서 허용해주세요.')),
+          const SnackBar(content: Text('카메라 권한이 필요합니다. 설정에서 허용해주세요.')),
         );
       }
       openAppSettings();
@@ -110,6 +109,11 @@ class _UserInfoPageState extends State<UserInfoPage> {
         final responseData = jsonDecode(step1Response.body);
         final dynamic userId = responseData['result']['userId'];
 
+        if(responseData['isSuccess'] == false) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(responseData['message'])));
+          return;
+        }
+
         // --- 수정된 부분 시작 ---
         // SharedPreferences에 String으로 저장하기 위해 userId를 String으로 변환
         final String userIdString = userId.toString();
@@ -130,13 +134,21 @@ class _UserInfoPageState extends State<UserInfoPage> {
 
         if (step2Response.statusCode == 200 || step2Response.statusCode == 201) {
           final prefs = await SharedPreferences.getInstance();
+
+          final responseData2 = jsonDecode(step1Response.body);
+
+          if(responseData2['isSuccess'] == false) {
+            if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(responseData2['message'])));
+            return;
+          }
+
           await prefs.setInt('user_id', int.parse(userIdString)); // 수정: userIdString을 저장
           await prefs.setString('user_name', _nameCtrl.text.trim());
           await prefs.setString('user_email', _emailCtrl.text.trim());
           await prefs.setString('user_gender', _gender ?? '');
           await prefs.setString('user_birth', _formatBirth(_birth));
           await prefs.setBool('user_is_first', false);
-          await prefs.setInt('user_point', prefs.getInt('user_point') ?? 0);
+          await prefs.setInt('user_point', 0);
           await prefs.setStringList('user_coupons', []);
 
           await requestCameraPermission();
@@ -164,34 +176,53 @@ class _UserInfoPageState extends State<UserInfoPage> {
   }
 
 
-  InputDecoration get _underlineInputDeco => const InputDecoration(
-    border: UnderlineInputBorder(),
-    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFE0E0E0))),
-    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: kPrimaryColor, width: 2)),
-    contentPadding: EdgeInsets.symmetric(vertical: 12),
-  );
+  InputDecoration _underlineInputDeco(String hint_text){
+    return InputDecoration(
+      border: UnderlineInputBorder(),
+      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFE0E0E0))),
+      focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: kPrimaryColor, width: 2)),
+      contentPadding: EdgeInsets.symmetric(vertical: 12),
+      hint: Text(
+        hint_text,
+        style: TextStyle(
+          fontSize: 16,
+          color: Colors.grey,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          '회원가입',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-        ),
-      ),
+      appBar: AppBar(),
       body: SafeArea(
         child: Form(
           key: _formKey,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
             children: [
+              Text(
+                '회원가입',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 40.0,),
               // 이름
               const Text('이름(닉네임)', style: kSubBodyTextStyle),
               TextFormField(
                 controller: _nameCtrl,
-                decoration: _underlineInputDeco,
-                validator: (v) => (v == null || v.trim().isEmpty) ? '이름(닉네임)을 입력해주세요.' : null,
+                decoration: _underlineInputDeco("2 ~ 15자"),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return '이름을 입력해주세요.';
+                    }
+                    else if(v.trim().length < 2 || v.trim().length > 15){
+                      return '2 ~ 15자';
+                    }
+                    else{
+                      return null;
+                    }
+                  }
               ),
               const SizedBox(height: 20),
 
@@ -199,8 +230,18 @@ class _UserInfoPageState extends State<UserInfoPage> {
               TextFormField(
                 controller: _passwordCtrl,
                 obscureText: true,
-                decoration: _underlineInputDeco,
-                validator: (v) => (v == null || v.trim().isEmpty) ? '비밀번호를 입력해주세요.' : null,
+                decoration: _underlineInputDeco("5 ~ 20자"),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return '비밀번호를 입력해주세요.';
+                    }
+                    else if(v.trim().length < 5 || v.trim().length > 20){
+                      return '5 ~ 20자';
+                    }
+                    else{
+                      return null;
+                    }
+                  }
               ),
               const SizedBox(height: 20),
 
@@ -208,10 +249,13 @@ class _UserInfoPageState extends State<UserInfoPage> {
               const Text('이메일', style: kSubBodyTextStyle),
               TextFormField(
                 controller: _emailCtrl,
-                decoration: _underlineInputDeco,
+                decoration: _underlineInputDeco("5 ~ 30자"),
                 keyboardType: TextInputType.emailAddress,
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return '이메일을 입력해주세요.';
+                  else if(v.trim().length < 5 || v.trim().length > 30){
+                    return '5 ~ 30자';
+                  }
                   final ok = RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(v);
                   return ok ? null : '올바른 이메일 형식이 아니에요.';
                 },
@@ -224,8 +268,7 @@ class _UserInfoPageState extends State<UserInfoPage> {
                 value: _gender,
                 items: _genders.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
                 onChanged: (v) => setState(() => _gender = v),
-                decoration: _underlineInputDeco,
-                hint: const Text('성별을 선택하세요'),
+                decoration: _underlineInputDeco("성별을 선택해주세요"),
                 validator: (v) => v == null ? '성별을 선택해주세요.' : null,
               ),
               const SizedBox(height: 20),
@@ -235,7 +278,7 @@ class _UserInfoPageState extends State<UserInfoPage> {
               InkWell(
                 onTap: _pickBirth,
                 child: InputDecorator(
-                  decoration: _underlineInputDeco,
+                  decoration: _underlineInputDeco("생년월일을 선택해주세요"),
                   child: Row(
                     children: [
                       Expanded(
@@ -243,7 +286,7 @@ class _UserInfoPageState extends State<UserInfoPage> {
                           _birth == null ? '생년월일을 선택하세요' : _formatBirthForDisplay(_birth),
                           style: TextStyle(
                             fontSize: 16,
-                            color: _birth == null ? Colors.grey.shade600 : Colors.black,
+                            color: _birth == null ? Colors.grey : Colors.black,
                           ),
                         ),
                       ),
@@ -287,7 +330,7 @@ class _UserInfoPageState extends State<UserInfoPage> {
               ),
               child: _isLoading
                   ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('저장하고 시작하기', style: kButtonTextStyle),
+                  : const Text('회원 가입', style: kButtonTextStyle),
             ),
           ),
         ),

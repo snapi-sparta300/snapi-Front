@@ -24,22 +24,40 @@ dependencies:
   path_provider: ^2.0.12
   permission_handler: ^11.0.1
   path: ^1.8.2
+  uuid: ^4.4.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: "^0.13.1"
 
 flutter:
   uses-material-design: true
 
   # 이미지/아이콘 자산 경로 (실제 폴더명과 일치해야 함)
   assets:
-    - assets/images/illustrations/ # 일러스트 폴더(온보딩 페이지)
-    - assets/images/home/          # ← main1~4.svg 넣어둘 폴더
-    - assets/images/
-    - assets/images/coupons/      # 쿠폰 관련 이미지 폴더
-    - assets/images/guidelines/
+    - assets/images/objects/2/title.png
+    - assets/images/objects/2/2_3/cover.png
+    - assets/images/objects/2/2_3/guideline.png
+    - assets/images/objects/2/2_4/cover.png
+    - assets/images/objects/2/2_4/guideline.png
+    - assets/images/objects/2/2_5/cover.png
+    - assets/images/objects/2/2_5/guideline.png
+    - assets/images/objects/1/title.png
+    - assets/images/objects/1/1_1/cover.png
+    - assets/images/objects/1/1_1/guideline.png
+    - assets/images/objects/1/1_2/cover.png
+    - assets/images/objects/1/1_2/guideline.png
+    - assets/images/coupons/baemin_coupon.png
+    - assets/images/coupons/chicken.png
+    - assets/images/coupons/mega_coffee.png
+    - assets/images/coupons/myjju.png
+    - assets/images/illustrations/ill1.svg
+    - assets/images/illustrations/ill2.svg
+    - assets/images/black.png
+    - assets/images/cookie.svg
+    - assets/images/app_icon.png
    
     # - assets/images/illustrations/img_wallet.svg
     # - assets/images/illustrations/img_phone.svg
@@ -52,3 +70,9 @@ flutter:
   #       - asset: assets/fonts/Inter-Regular.ttf
   #       - asset: assets/fonts/Inter-Bold.ttf
   #         weight: 700
+
+flutter_launcher_icons:
+  android: "launcher_icon" # 안드로이드 아이콘 이름
+  ios: true                # iOS 아이콘 생성 여부
+  image_path: "assets/images/app_icon.png" # 준비한 아이콘 이미지 경로
+  min_sdk_android: 21      # 안드로이드 최소 SDK 버전

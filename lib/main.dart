@@ -1,30 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:three_thousand/user_login_page.dart';
 import 'app_constants.dart';
-import 'challenge_detail_page.dart';
 import 'main_page.dart';
-import 'my_activity_page.dart';
 import 'onboarding_page.dart';
-import 'user_info_page.dart';
-import 'verification_page.dart';
+import 'package:flutter/services.dart';
 
 void main() async{
   // runApp을 호출하기 전에 Flutter 엔진 바인딩을 초기화해야 합니다.
   // SharedPreferences를 사용하기 전에 필요합니다.
   WidgetsFlutterBinding.ensureInitialized();
 
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent, // 상태 표시줄 배경색을 투명하게 설정
+    statusBarIconBrightness: Brightness.dark, // Android: 아이콘 색상을 검은색으로 설정
+    statusBarBrightness: Brightness.light, // iOS: 아이콘 색상을 검은색으로 설정
+  ));
+
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   // 'is_first' 값을 읽어옵니다. 저장된 값이 없으면 true를 기본값으로 사용합니다.
-  final bool isFirstTime = prefs.getBool('user_is_first') ?? true;
+  final bool user_is_first = prefs.getBool('user_is_first') ?? true;
 
-  runApp(SnapiApp(isFirstTime: isFirstTime));
+  runApp(SnapiApp(user_is_first: user_is_first));
 }
 
 class SnapiApp extends StatelessWidget {
-  final bool isFirstTime;
+  final bool user_is_first;
 
-  const SnapiApp({super.key, required this.isFirstTime});
+  const SnapiApp({super.key, required this.user_is_first});
 
   @override
   Widget build(BuildContext context) {
@@ -60,14 +62,10 @@ class SnapiApp extends StatelessWidget {
       // 실제 앱에서는 SharedPreferences 등을 확인하여 온보딩 완료 여부에 따라 MainPage로 바로 이동하는 로직 추가 필요
       home: const OnboardingPage(),
       // 라우트 설정
-      initialRoute: isFirstTime ? '/onboarding' : '/main',
+      initialRoute: user_is_first ? '/onboarding' : '/main',
       routes: {
         '/onboarding': (context) => const OnboardingPage(),
-        '/user_info': (context) => const UserInfoPage(),
         '/main': (context) => const MainPage(),
-        //'/verification': (context) => VerificationPage(), // 테스트를 위해 기본값을 true로 설정
-        '/my_activity': (context) => MyActivityPage(),
-        '/user_login': (context) => UserLoginPage(),
       },
     );
   }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // SharedPreferences 사용을 위해 import
+import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:three_thousand/onboarding_page.dart'; // SharedPreferences 사용을 위해 import
 
 // Coupon 클래스를 별도 파일로 분리하는 것을 권장합니다.
 // 예: lib/models/coupon_model.dart
@@ -18,15 +20,18 @@ class ProfileTabPage extends StatefulWidget {
 }
 
 class _ProfileTabPageState extends State<ProfileTabPage> {
-  // 사용자 정보를 담을 상태 변수
-  String? _userName;
-  String? _userEmail;
+  late SharedPreferences _prefs;
 
-  // 더미 데이터
-  final List<Coupon> myCoupons = [
-    Coupon(imageUrl: 'assets/images/coupons/mega_coffee.png', title: '메가커피 디지털상품권'),
-    Coupon(imageUrl: 'assets/images/coupons/baemin_coupon.png', title: '배달의민족 상품권'),
-  ];
+  int? _user_id = null;
+  String? _user_name = null;
+  String? _user_email = null;
+  String? _user_gender = null;
+  String? _user_birth = null;
+  bool? _user_is_first = null;
+  int? _user_point = null;
+  List<String>? _user_coupons = null;
+
+  bool is_loading = false;
 
   @override
   void initState() {
@@ -37,14 +42,21 @@ class _ProfileTabPageState extends State<ProfileTabPage> {
 
   // SharedPreferences에서 사용자 데이터를 불러오는 함수
   Future<void> _loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
-    // setState를 통해 화면을 다시 그려서 데이터를 반영
+    _prefs = await SharedPreferences.getInstance();
     setState(() {
-      // 'user_name'과 'user_email' 키로 저장된 값을 불러옵니다.
-      // 키 이름은 실제 프로젝트에 맞게 확인/수정이 필요할 수 있습니다.
-      _userName = prefs.getString('user_name');
-      _userEmail = prefs.getString('user_email');
+      _user_id = _prefs.getInt("user_id") ?? null;
+      _user_name = _prefs.getString('user_name') ?? null;
+      _user_email = _prefs.getString("user_email") ?? null;
+      _user_gender = _prefs.getString("user_gender") ?? null;
+      _user_birth = _prefs.getString('user_birth') ?? null;
+      _user_is_first = _prefs.getBool('user_is_first') ?? null;
+      _user_point = _prefs.getInt('user_point') ?? null;
+      _user_coupons = _prefs.getStringList('user_coupons') ?? null;
+
+      is_loading = true;
     });
+
+    print(_user_coupons);
   }
 
   @override
@@ -55,19 +67,17 @@ class _ProfileTabPageState extends State<ProfileTabPage> {
       length: 2,
       child: Scaffold(
         backgroundColor: Colors.white,
-        appBar: AppBar(
-          title: const Text(
-            '프로필',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
-          ),
-          backgroundColor: Colors.white,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-        ),
         body: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          padding: EdgeInsets.all(20.0),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              SizedBox(height: 10.0,),
+              Text(
+                '프로필',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+              ),
+              SizedBox(height: 25.0,),
               // 프로필 정보
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -86,26 +96,17 @@ class _ProfileTabPageState extends State<ProfileTabPage> {
                           // [수정된 부분]
                           // 데이터 로딩 중이면 '이름...'을, 로딩 후엔 실제 이름을 표시
                           Text(
-                            _userName ?? '이름...', // null이면 '이름...' 표시
+                            _user_name ?? '', // null이면 '이름...' 표시
                             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                           // [수정된 부분]
                           Text(
-                            _userEmail ?? '이메일...', // null이면 '이메일...' 표시
+                            _user_email ?? '', // null이면 '이메일...' 표시
                             style: TextStyle(color: Colors.grey[600]),
                           ),
                         ],
                       ),
                     ),
-                    TextButton(
-                      onPressed: () {
-                        // 수정 페이지로 이동하는 로직
-                      },
-                      child: const Text(
-                        '수정',
-                        style: TextStyle(color: primaryColor, fontSize: 16),
-                      ),
-                    )
                   ],
                 ),
               ),
@@ -128,9 +129,46 @@ class _ProfileTabPageState extends State<ProfileTabPage> {
                 child: TabBarView(
                   children: [
                     // 첫 번째 탭: 보관된 쿠폰
-                    _buildMyCouponGrid(),
+                    Builder(
+                        builder: (_){
+                          if(is_loading){
+                            if(_user_coupons?.length == 0){
+                              return Padding(
+                                  padding: EdgeInsets.all(50.0),
+                                  child: const Center(
+                                    child: Text('보관된 쿠폰이 없습니다', style: TextStyle(fontSize: 16.0, color: Colors.grey)),
+                                  ));
+                            }
+                            return _buildMyCouponGrid();
+                          }
+                          else{
+                            return CircularProgressIndicator();
+                          }
+                        }
+                    ),
                     // 두 번째 탭: 설정
-                    const Center(child: Text('설정 페이지 입니다.')),
+                    Column(
+                      children: <Widget>[
+                        TextButton(
+                            onPressed: () async{
+                              _prefs = await SharedPreferences.getInstance();
+                              _prefs.setBool("user_is_first", true);
+                              Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(builder: (context) => OnboardingPage()),
+                                    (Route<dynamic> route) => false, // 이 조건이 false일 때까지 모든 라우트 제거
+                              );
+                            },
+                            child: Text(
+                                "로그아웃",
+                              style: TextStyle(
+                                fontSize: 18.0,
+                                color: Colors.red,
+                              ),
+                            ),
+                        )
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -142,27 +180,55 @@ class _ProfileTabPageState extends State<ProfileTabPage> {
   }
 
   Widget _buildMyCouponGrid() {
-    return GridView.builder(
-      padding: const EdgeInsets.only(top: 24.0),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 1.5,
-      ),
-      itemCount: myCoupons.length,
-      itemBuilder: (context, index) {
-        final coupon = myCoupons[index];
-        return Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[300]!),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(11),
-            child: Image.asset(
-              coupon.imageUrl,
-              fit: BoxFit.cover,
+    return ListView.builder(
+      itemCount: _user_coupons?.length,
+      itemBuilder: (BuildContext context, int index) {
+        List<String>? couponInfo = _user_coupons?[index].split('/');
+        String? coupon_title = couponInfo?[0];
+        String? coupon_date = couponInfo?[1];
+        String? coupon_code = couponInfo?[2];
+
+        return InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: (){
+
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(coupon_title!, style: const TextStyle(fontSize: 16,)),
+                      Text(coupon_date!, style: const TextStyle(fontSize: 14, color: Colors.black45))
+                    ],
+                  )
+                ),
+            ElevatedButton(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: coupon_code!)).then((_) {
+                  // 복사 성공 시 SnackBar로 사용자에게 알림
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('클립보드에 쿠폰 코드가 복사되었습니다.'),
+                      duration: Duration(seconds: 2), // 메시지가 표시되는 시간
+                    ),
+                  );
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey.shade200,
+                foregroundColor: Colors.black54,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              ),
+              child: const Text('쿠폰 번호 복사'),
+            ),
+              ],
             ),
           ),
         );

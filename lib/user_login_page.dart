@@ -25,15 +25,14 @@ class _UserInfoPageState extends State<UserLoginPage> {
 
   Future<void> requestCameraPermission() async {
     final cameraStatus = await Permission.camera.request();
-    final microphoneStatus = await Permission.microphone.request();
 
-    if (cameraStatus.isGranted && microphoneStatus.isGranted) {
-      print("카메라 및 마이크 권한이 허용되었습니다.");
+    if (cameraStatus.isGranted) {
+      print("카메라 권한이 허용되었습니다.");
     } else {
-      print("카메라 및 마이크 권한이 거부되었습니다.");
+      print("카메라 권한이 거부되었습니다.");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('카메라와 마이크 권한이 필요합니다. 설정에서 허용해주세요.')),
+          const SnackBar(content: Text('카메라 권한이 필요합니다. 설정에서 허용해주세요.')),
         );
       }
       openAppSettings();
@@ -76,6 +75,11 @@ class _UserInfoPageState extends State<UserLoginPage> {
         final responseData = jsonDecode(step1Response.body);
         final userId = responseData['result']['userId'];
 
+        if(responseData['isSuccess'] == false) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(responseData['message'])));
+          return;
+        }
+
         final step2Response = await http.get(
           Uri.parse('$kApiBaseUrl/members/$userId/profile'),
           headers: {'Content-Type': 'application/json'},
@@ -84,6 +88,11 @@ class _UserInfoPageState extends State<UserLoginPage> {
         if (step2Response.statusCode == 200 || step2Response.statusCode == 201) {
           final Map<String, dynamic> data = jsonDecode(step2Response.body);
           final prefs = await SharedPreferences.getInstance();
+
+          if(data['isSuccess'] == false) {
+            if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'])));
+            return;
+          }
 
           // --- 이 부분이 수정되었습니다 ---
           // null-aware 연산자(??)를 사용해 null 값을 빈 문자열로 대체
@@ -121,41 +130,70 @@ class _UserInfoPageState extends State<UserLoginPage> {
     }
   }
 
-  InputDecoration get _underlineInputDeco => const InputDecoration(
-    border: UnderlineInputBorder(),
-    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFE0E0E0))),
-    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: kPrimaryColor, width: 2)),
-    contentPadding: EdgeInsets.symmetric(vertical: 12),
-  );
+  InputDecoration _underlineInputDeco(String hint_text){
+    return InputDecoration(
+      border: UnderlineInputBorder(),
+      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFE0E0E0))),
+      focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: kPrimaryColor, width: 2)),
+      contentPadding: EdgeInsets.symmetric(vertical: 12),
+      hint: Text(
+        hint_text,
+        style: TextStyle(
+          fontSize: 16,
+          color: Colors.grey,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          '로그인',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-        ),
-      ),
+      appBar: AppBar(),
       body: SafeArea(
         child: Form(
           key: _formKey,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
             children: [
+              Text(
+                '로그인',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 40.0,),
               const Text('이름(닉네임)', style: kSubBodyTextStyle),
               TextFormField(
                 controller: _nameCtrl,
-                decoration: _underlineInputDeco,
-                validator: (v) => (v == null || v.trim().isEmpty) ? '이름(닉네임)을 입력해주세요.' : null,
+                decoration: _underlineInputDeco("2 ~ 15자"),
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) {
+                    return '이름(닉네임)을 입력해주세요.';
+                  }
+                  else if(v.trim().length < 2 || v.trim().length > 15){
+                    return '2 ~ 15자';
+                  }
+                  else{
+                    return null;
+                  }
+                }
               ),
               const SizedBox(height: 20),
               const Text('비밀번호', style: kSubBodyTextStyle),
               TextFormField(
                 controller: _passwordCtrl,
                 obscureText: true,
-                decoration: _underlineInputDeco,
-                validator: (v) => (v == null || v.trim().isEmpty) ? '비밀번호를 입력해주세요.' : null,
+                decoration: _underlineInputDeco("5 ~ 20자"),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return '비밀번호를 입력해주세요.';
+                    }
+                    else if(v.trim().length < 5 || v.trim().length > 20){
+                      return '5 ~ 20자';
+                    }
+                    else{
+                      return null;
+                    }
+                  }
               ),
               const SizedBox(height: 40),
             ],
@@ -177,7 +215,7 @@ class _UserInfoPageState extends State<UserLoginPage> {
               ),
               child: _isLoading
                   ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('저장하고 시작하기', style: kButtonTextStyle),
+                  : const Text('로그인', style: kButtonTextStyle),
             ),
           ),
         ),

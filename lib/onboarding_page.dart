@@ -21,13 +21,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
       "image": "assets/images/illustrations/ill1.svg",
       "title": "사진 한 장으로\n수익 창출",
       "description": "소소한 수익을 얻어 보세요",
-      "highlights": ["수익 창출"]
+      "highlights": "수익 창출",
     },
     {
       "image": "assets/images/illustrations/ill2.svg",
       "title": "사진 한 장으로\nAI 발전 기여",
       "description": "AI는 제공 받는 데이터로 학습합니다",
-      "highlights": ["AI 발전 기여"]
+      "highlights": "AI 발전 기여"
     },
   ];
 
@@ -48,7 +48,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     image: data["image"] as String,
                     title: data["title"] as String,
                     description: data["description"] as String,
-                    highlights: List<String>.from(data["highlights"] as List),
+                    highlights: data['highlights'] as String,
                   );
                 },
               ),
@@ -140,7 +140,7 @@ class OnboardingContent extends StatelessWidget {
   final String image;
   final String title;
   final String description;
-  final List<String> highlights;
+  final String highlights;
 
   bool get _isSvg => image.toLowerCase().endsWith('.svg');
 
@@ -174,15 +174,14 @@ class OnboardingContent extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
-                        title,
+                      Text.rich(
                         textAlign: TextAlign.center,
-                        style: kHeadline1Style.copyWith(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
+                        TextSpan(
+                          style: const TextStyle(fontSize: 24.0, color: Colors.black),
+                          children: buildTextSpans(title, highlights),
                         ),
                       ),
-                      SizedBox(height: 5.0,),
+                      SizedBox(height: 10.0,),
                       Text(
                         description,
                         textAlign: TextAlign.center,
@@ -198,76 +197,34 @@ class OnboardingContent extends StatelessWidget {
     );
   }
 
-  // 텍스트 안에서 여러 키워드를 위치 기준으로 찾아 강조 (중복·순서 안전)
-  Widget _buildHighlightedParagraph(String text, List<String> keys) {
-    if (keys.isEmpty) {
-      return Text(
-        text,
-        style: kSubBodyTextStyle.copyWith(fontSize: 14, height: 1.5, color: kSubTextColor),
-      );
+  List<TextSpan> buildTextSpans(String text, String highlight) {
+    if (highlight.isEmpty) {
+      return [TextSpan(text: text)];
     }
 
-    // 모든 키워드의 최초 등장 위치 수집
-    final matches = <_Hit>[];
-    for (final k in keys) {
-      final idx = text.indexOf(k);
-      if (idx != -1) {
-        matches.add(_Hit(start: idx, end: idx + k.length));
-      }
-    }
-    if (matches.isEmpty) {
-      return Text(
-        text,
-        style: kSubBodyTextStyle.copyWith(fontSize: 14, height: 1.5, color: kSubTextColor),
-      );
-    }
+    final List<TextSpan> spans = [];
+    final RegExp regex = RegExp(highlight, caseSensitive: false); // 대소문자 구분 없이 찾기
+    int start = 0;
 
-    // 위치 순으로 정렬하고 겹치는 구간 정리
-    matches.sort((a, b) => a.start.compareTo(b.start));
-    final merged = <_Hit>[];
-    for (final m in matches) {
-      if (merged.isEmpty || m.start > merged.last.end) {
-        merged.add(m);
-      } else {
-        // 겹치면 확장
-        merged.last = _Hit(
-          start: merged.last.start,
-          end: m.end > merged.last.end ? m.end : merged.last.end,
-        );
-      }
-    }
+    for (final match in regex.allMatches(text)) {
+      // 강조할 부분 앞의 일반 텍스트
+      spans.add(TextSpan(text: text.substring(start, match.start)));
 
-    // 일반/강조 span 조립
-    final spans = <TextSpan>[];
-    int cursor = 0;
-    for (final h in merged) {
-      if (cursor < h.start) {
-        spans.add(TextSpan(text: text.substring(cursor, h.start)));
-      }
+      // 강조할 텍스트
       spans.add(TextSpan(
-        text: text.substring(h.start, h.end),
-        style: kSubBodyTextStyle.copyWith(
+        text: text.substring(match.start, match.end),
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
           color: kPrimaryColor,
-          fontWeight: FontWeight.w600,
         ),
       ));
-      cursor = h.end;
-    }
-    if (cursor < text.length) {
-      spans.add(TextSpan(text: text.substring(cursor)));
+
+      start = match.end;
     }
 
-    return Text.rich(
-      TextSpan(
-        style: kSubBodyTextStyle.copyWith(fontSize: 14, height: 1.5, color: kSubTextColor),
-        children: spans,
-      ),
-    );
+    // 마지막 남은 일반 텍스트
+    spans.add(TextSpan(text: text.substring(start)));
+
+    return spans;
   }
-}
-
-class _Hit {
-  final int start;
-  final int end;
-  const _Hit({required this.start, required this.end});
 }

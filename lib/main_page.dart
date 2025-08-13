@@ -29,17 +29,20 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(child: _widgetOptions.elementAt(_selectedIndex)),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: '홈'),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_bag), label: 'Snapi 쇼핑'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: '프로필'),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: kPrimaryColor,
-        onTap: _onItemTapped,
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        body: SafeArea(child: _widgetOptions.elementAt(_selectedIndex)),
+        bottomNavigationBar: BottomNavigationBar(
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: '홈'),
+            BottomNavigationBarItem(icon: Icon(Icons.shopping_bag), label: 'Snapi 쇼핑'),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: '프로필'),
+          ],
+          currentIndex: _selectedIndex,
+          selectedItemColor: kPrimaryColor,
+          onTap: _onItemTapped,
+        ),
       ),
     );
   }
