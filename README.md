@@ -1,6 +1,6 @@
-# three_thousand
+# snapi mobile app
 
-three thousand.
+snapi mobile app.
 
 ## Getting Started
 
